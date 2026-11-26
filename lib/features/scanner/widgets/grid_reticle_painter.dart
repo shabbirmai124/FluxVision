@@ -1,5 +1,6 @@
 import 'dart:math' as math;
-import 'package:material_ui/material_ui.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart';
 
 import '../../../engine/scan_mode.dart';
 import '../../../engine/spatial_field_engine.dart';

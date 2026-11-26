@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../../engine/scan_mode.dart';
 import '../../../engine/spatial_field_engine.dart';
@@ -96,7 +96,7 @@ class FluxHeatmapPainter extends CustomPainter {
         text: label,
         style: TextStyle(
           fontFamily: 'monospace',
-          fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+          fontFeatures: const <ui.FontFeature>[ui.FontFeature.tabularFigures()],
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: palette[3],

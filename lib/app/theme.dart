@@ -1,4 +1,5 @@
-import 'package:material_ui/material_ui.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart';
 
 /// Tactical obsidian HUD visual theme for FluxVision.
 abstract final class FluxTheme {

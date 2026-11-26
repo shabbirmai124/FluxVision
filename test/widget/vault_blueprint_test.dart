@@ -10,7 +10,7 @@ import 'package:flux_vision/features/blueprint/blueprint_png_exporter.dart';
 import 'package:flux_vision/features/blueprint/blueprint_screen.dart';
 import 'package:flux_vision/features/vault/vault_controller.dart';
 import 'package:flux_vision/features/vault/vault_screen.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   late Directory tempDir;

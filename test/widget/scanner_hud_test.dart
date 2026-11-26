@@ -8,7 +8,7 @@ import 'package:flux_vision/features/scanner/scanner_controller.dart';
 import 'package:flux_vision/features/scanner/scanner_screen.dart';
 import 'package:flux_vision/features/vault/vault_controller.dart';
 import 'package:flux_vision/sensors/simulated_sensor_source.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   late Directory tempDir;
