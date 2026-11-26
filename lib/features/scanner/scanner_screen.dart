@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
 import 'scanner_controller.dart';
@@ -16,8 +16,9 @@ import 'widgets/grid_reticle_painter.dart';
 import 'widgets/hud_telemetry_bar.dart';
 import 'widgets/mode_selector_dock.dart';
 
-/// Full-screen AR scanner combining live camera feed (or interactive dark canvas in Demo/desktop),
-/// Pure-Dart heatmap overlay, reticle HUD, and strict lifecycle power protection.
+/// Full-screen AR field scanner combining live camera feed (or calibrated dark
+/// optical backdrop in Demo/desktop mode), Pure-Dart thermal overlay, optical
+/// rangefinder reticle, measured contrast scrims, and lifecycle power safety.
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({
     super.key,
@@ -99,7 +100,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     } on MissingPluginException {
       // Test or desktop runner
     } on CameraException {
-      // Camera permission denied or unavailable; tactical dark canvas stays visible
+      // Camera permission denied or unavailable; matte optical backdrop stays visible
     }
   }
 
@@ -146,18 +147,36 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   }
 
   Future<void> _promptSaveBaseline() async {
+    final currentState = ref.read(scannerControllerProvider);
     final textCtrl = TextEditingController(text: 'Living Room');
     final confirmed = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: FluxTheme.surface,
+      builder: (BuildContext ctx) => AlertDialog(
         title: const Text('Save Room Baseline'),
-        content: TextField(
-          controller: textCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Room Label',
-            hintText: 'e.g. Server Closet, Bedroom',
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Stores ${currentState.frame.filteredValue.toStringAsFixed(1)} ${currentState.mode.unit} '
+              'as the clean ambient floor for Privacy Diff sweeps.',
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: FluxTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: textCtrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Room Label',
+                hintText: 'Server Closet, Bedroom, Studio',
+              ),
+            ),
+          ],
         ),
         actions: <Widget>[
           TextButton(
@@ -166,7 +185,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(textCtrl.text),
-            child: const Text('Save'),
+            child: const Text('Save Baseline'),
           ),
         ],
       ),
@@ -207,12 +226,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onPanUpdate: state.demoMode
-            ? (details) => controller.nudgeDemoPan(details.delta.dx, details.delta.dy)
+            ? (DragUpdateDetails details) =>
+                controller.nudgeDemoPan(details.delta.dx, details.delta.dy)
             : null,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            // Layer 0: Camera Preview or Tactical Dark Backdrop
+            // Layer 0: Camera Preview or Calibrated Matte Optical Backdrop
             if (showLiveCamera)
               FittedBox(
                 fit: BoxFit.cover,
@@ -227,16 +247,16 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 decoration: const BoxDecoration(
                   gradient: RadialGradient(
                     center: Alignment.center,
-                    radius: 1.1,
+                    radius: 1.05,
                     colors: <Color>[
-                      Color(0xFF0E1726),
+                      Color(0xFF10151E),
                       FluxTheme.background,
                     ],
                   ),
                 ),
               ),
 
-            // Layer 1: Pure-Dart GPU-accelerated AR Heatmap
+            // Layer 1: Pure-Dart GPU-accelerated Radiometric Heatmap
             RepaintBoundary(
               child: CustomPaint(
                 painter: FluxHeatmapPainter(
@@ -248,7 +268,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               ),
             ),
 
-            // Layer 2: Sci-fi Targeting Grid & Lock-on Reticle
+            // Layer 2: Precision Optical Rangefinder Reticle
             CustomPaint(
               painter: GridReticlePainter(
                 mode: state.mode,
@@ -260,10 +280,29 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               child: const SizedBox.expand(),
             ),
 
-            // Layer 3: Tactical HUD Overlay
+            // Layer 2.5: Measured Top & Bottom Contrast Scrims for Camera Legibility
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: <double>[0.0, 0.20, 0.76, 1.0],
+                    colors: <Color>[
+                      Color(0x9906080B),
+                      Color(0x0006080B),
+                      Color(0x0006080B),
+                      Color(0xB306080B),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Layer 3: Instrument HUD & Thumb-Zone Console
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
                   children: <Widget>[
                     HudTelemetryBar(
@@ -272,7 +311,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                       onOpenVault: () => unawaited(context.push('/vault')),
                       onClearBaseline: controller.clearActiveBaseline,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     CalibrationOverlay(
                       isCalibrating: state.frame.isCalibrating,
                       progress: state.frame.calibrationProgress,

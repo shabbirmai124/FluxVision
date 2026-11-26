@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import '../../../engine/scan_mode.dart';
 import '../../../engine/spatial_field_engine.dart';
 
-/// Sci-fi targeting reticle, yaw azimuth tape, horizon pitch ticks,
-/// corner viewfinder brackets, and peak anomaly target lock ring.
+/// Precision optical rangefinder reticle: subtle corner viewfinder brackets,
+/// broken center crosshair, calibrated pitch horizon ticks, azimuth readout,
+/// and 4-corner caliper target-lock brackets around the strongest anomaly.
 class GridReticlePainter extends CustomPainter {
   GridReticlePainter({
     required this.mode,
@@ -22,13 +23,23 @@ class GridReticlePainter extends CustomPainter {
   final double yawDegrees;
   final ProjectedHotspot? peakHotspot;
 
-  final Paint _gridPaint = Paint()..strokeWidth = 0.8;
+  final Paint _framePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0
+    ..color = const Color(0x38F3F5F7);
+
+  final Paint _horizonPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+
   final Paint _reticlePaint = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.4;
+    ..strokeWidth = 1.15;
+
   final Paint _lockPaint = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 2.0;
+    ..strokeWidth = 1.6;
+
   final TextPainter _azimuthPainter = TextPainter(
     textDirection: TextDirection.ltr,
   );
@@ -40,86 +51,159 @@ class GridReticlePainter extends CustomPainter {
     final accent = mode.accentColor;
     final center = Offset(size.width * 0.5, size.height * 0.5);
 
-    // Subtle spatial reference grid
-    _gridPaint.color = accent.withValues(alpha: 0.08);
-    const cols = 6;
-    const rows = 8;
-    for (int i = 1; i < cols; i++) {
-      final x = size.width * (i / cols);
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), _gridPaint);
-    }
-    for (int j = 1; j < rows; j++) {
-      final y = size.height * (j / rows);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), _gridPaint);
-    }
+    // Subtle corner viewfinder L-brackets (unobtrusive optical framing)
+    _drawViewfinderCorners(canvas, size);
 
-    // Compact yaw/pitch telemetry azimuth strip above center reticle
-    _drawAzimuthIndicator(canvas, size, center, accent);
+    // Calibrated azimuth & pitch readout strip above reticle
+    _drawAzimuthIndicator(canvas, size, center);
 
-    // Horizon pitch indicator line
-    final pitchOffset = (pitchDegrees.clamp(-45.0, 45.0) / 45.0) * (size.height * 0.2);
+    // Calibrated pitch horizon flanks with micro degree graduations
+    final pitchOffset = (pitchDegrees.clamp(-45.0, 45.0) / 45.0) * (size.height * 0.18);
     final horizonY = center.dy + pitchOffset;
-    _gridPaint.color = accent.withValues(alpha: 0.30);
+    _horizonPaint.color = const Color(0x4CF3F5F7);
     canvas.drawLine(
-      Offset(center.dx - 64, horizonY),
-      Offset(center.dx - 24, horizonY),
-      _gridPaint,
+      Offset(center.dx - 76, horizonY),
+      Offset(center.dx - 30, horizonY),
+      _horizonPaint,
     );
     canvas.drawLine(
-      Offset(center.dx + 24, horizonY),
-      Offset(center.dx + 64, horizonY),
-      _gridPaint,
+      Offset(center.dx + 30, horizonY),
+      Offset(center.dx + 76, horizonY),
+      _horizonPaint,
+    );
+    // Vertical pitch end ticks
+    canvas.drawLine(
+      Offset(center.dx - 76, horizonY - 4),
+      Offset(center.dx - 76, horizonY + 4),
+      _horizonPaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx + 76, horizonY - 4),
+      Offset(center.dx + 76, horizonY + 4),
+      _horizonPaint,
     );
 
-    // Center reticle circle & ticks
-    _reticlePaint.color = accent.withValues(alpha: 0.58);
-    canvas.drawCircle(center, 18, _reticlePaint);
-    canvas.drawLine(Offset(center.dx - 28, center.dy), Offset(center.dx - 10, center.dy), _reticlePaint);
-    canvas.drawLine(Offset(center.dx + 10, center.dy), Offset(center.dx + 28, center.dy), _reticlePaint);
-    canvas.drawLine(Offset(center.dx, center.dy - 28), Offset(center.dx, center.dy - 10), _reticlePaint);
-    canvas.drawLine(Offset(center.dx, center.dy + 10), Offset(center.dx, center.dy + 28), _reticlePaint);
+    // Minimalist broken center optical crosshair (clear center aperture)
+    _reticlePaint.color = const Color(0xB3F3F5F7);
+    canvas.drawLine(
+      Offset(center.dx - 20, center.dy),
+      Offset(center.dx - 7, center.dy),
+      _reticlePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx + 7, center.dy),
+      Offset(center.dx + 20, center.dy),
+      _reticlePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy - 20),
+      Offset(center.dx, center.dy - 7),
+      _reticlePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy + 7),
+      Offset(center.dx, center.dy + 20),
+      _reticlePaint,
+    );
 
-    // Target lock ring around peak hotspot
+    // Subtle mode-colored micro center reticle ring
+    _reticlePaint.color = accent.withValues(alpha: 0.48);
+    canvas.drawCircle(center, 14, _reticlePaint);
+
+    // Precision 4-corner caliper brackets around peak anomaly
     final peak = peakHotspot;
     if (peak != null && peak.intensity > 0.16) {
       final target = Offset(peak.screenX * size.width, peak.screenY * size.height);
-      final pulse = 1.0 + 0.12 * math.sin(elapsedSeconds * 6.0);
-      final lockRadius = 24.0 * pulse;
-      _lockPaint.color = mode.paletteColors.last.withValues(alpha: 0.85);
+      final breathe = 1.0 + 0.06 * math.sin(elapsedSeconds * 4.5);
+      final half = 22.0 * breathe;
+      const cornerLen = 8.0;
 
-      canvas.drawArc(
-        Rect.fromCircle(center: target, radius: lockRadius),
-        0.2,
-        1.1,
-        false,
-        _lockPaint,
-      );
-      canvas.drawArc(
-        Rect.fromCircle(center: target, radius: lockRadius),
-        math.pi + 0.2,
-        1.1,
-        false,
-        _lockPaint,
-      );
+      _lockPaint.color = mode.paletteColors.last.withValues(alpha: 0.88);
+      _drawCaliperCorners(canvas, target, half, cornerLen, _lockPaint);
     }
   }
 
-  void _drawAzimuthIndicator(Canvas canvas, Size size, Offset center, Color accent) {
+  void _drawViewfinderCorners(Canvas canvas, Size size) {
+    const insetX = 20.0;
+    final topY = math.max(132.0, size.height * 0.19);
+    final bottomY = math.min(size.height - 154.0, size.height * 0.78);
+    if (bottomY - topY < 80) return;
+
+    const len = 14.0;
+    // Top-left
+    canvas.drawLine(Offset(insetX, topY), Offset(insetX + len, topY), _framePaint);
+    canvas.drawLine(Offset(insetX, topY), Offset(insetX, topY + len), _framePaint);
+    // Top-right
+    canvas.drawLine(
+      Offset(size.width - insetX, topY),
+      Offset(size.width - insetX - len, topY),
+      _framePaint,
+    );
+    canvas.drawLine(
+      Offset(size.width - insetX, topY),
+      Offset(size.width - insetX, topY + len),
+      _framePaint,
+    );
+    // Bottom-left
+    canvas.drawLine(Offset(insetX, bottomY), Offset(insetX + len, bottomY), _framePaint);
+    canvas.drawLine(Offset(insetX, bottomY), Offset(insetX, bottomY - len), _framePaint);
+    // Bottom-right
+    canvas.drawLine(
+      Offset(size.width - insetX, bottomY),
+      Offset(size.width - insetX - len, bottomY),
+      _framePaint,
+    );
+    canvas.drawLine(
+      Offset(size.width - insetX, bottomY),
+      Offset(size.width - insetX, bottomY - len),
+      _framePaint,
+    );
+  }
+
+  void _drawCaliperCorners(
+    Canvas canvas,
+    Offset center,
+    double half,
+    double len,
+    Paint paint,
+  ) {
+    final l = center.dx - half;
+    final r = center.dx + half;
+    final t = center.dy - half;
+    final b = center.dy + half;
+
+    // Top-left
+    canvas.drawLine(Offset(l, t), Offset(l + len, t), paint);
+    canvas.drawLine(Offset(l, t), Offset(l, t + len), paint);
+    // Top-right
+    canvas.drawLine(Offset(r, t), Offset(r - len, t), paint);
+    canvas.drawLine(Offset(r, t), Offset(r, t + len), paint);
+    // Bottom-left
+    canvas.drawLine(Offset(l, b), Offset(l + len, b), paint);
+    canvas.drawLine(Offset(l, b), Offset(l, b - len), paint);
+    // Bottom-right
+    canvas.drawLine(Offset(r, b), Offset(r - len, b), paint);
+    canvas.drawLine(Offset(r, b), Offset(r, b - len), paint);
+  }
+
+  void _drawAzimuthIndicator(Canvas canvas, Size size, Offset center) {
     final normalizedYaw = ((yawDegrees % 360.0) + 360.0) % 360.0;
+    final pitchSign = pitchDegrees >= 0 ? '+' : '';
     final yawStr =
-        'YAW ${normalizedYaw.toStringAsFixed(0).padLeft(3, '0')}°  •  PITCH ${pitchDegrees.toStringAsFixed(0)}°';
+        'HDG ${normalizedYaw.toStringAsFixed(0).padLeft(3, '0')}°  ·  ELEV $pitchSign${pitchDegrees.toStringAsFixed(0)}°';
     _azimuthPainter.text = TextSpan(
       text: yawStr,
-      style: TextStyle(
+      style: const TextStyle(
         fontFamily: 'monospace',
-        fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+        fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
         fontSize: 10,
-        letterSpacing: 0.8,
-        color: accent.withValues(alpha: 0.65),
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.6,
+        color: Color(0x99F3F5F7),
       ),
     );
     _azimuthPainter.layout();
-    final yPos = (center.dy - 54.0).clamp(90.0, size.height - 140.0);
+    final yPos = (center.dy - 50.0).clamp(116.0, size.height - 170.0);
     _azimuthPainter.paint(canvas, Offset(center.dx - _azimuthPainter.width * 0.5, yPos));
   }
 

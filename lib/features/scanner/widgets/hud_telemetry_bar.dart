@@ -4,8 +4,8 @@ import '../../../app/theme.dart';
 import '../../../engine/scan_mode.dart';
 import '../scanner_state.dart';
 
-/// Top tactical HUD telemetry readout displaying active scan mode, tabular live
-/// signal measurement, baseline delta, BLE beacon count, FPS, Demo toggle, and Vault shortcut.
+/// Precision instrument telemetry bar with clean tabular numeric hierarchy,
+/// unboxed metadata separators, and generous 44px touch targets.
 class HudTelemetryBar extends StatelessWidget {
   const HudTelemetryBar({
     super.key,
@@ -28,111 +28,103 @@ class HudTelemetryBar extends StatelessWidget {
     final isAlert = frame.anomalyDetected;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: FluxTheme.surfaceGlass,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(FluxTheme.radiusOuter),
         border: Border.all(
           color: isAlert
-              ? FluxTheme.anomalyAmber.withValues(alpha: 0.78)
+              ? FluxTheme.anomalyAmber.withValues(alpha: 0.65)
               : FluxTheme.border,
+          width: 0.8,
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              // Active mode & unit badge (e.g. "EM µT", "RF dBm", "SND dB")
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: accent.withValues(alpha: 0.6)),
-                ),
-                child: Text(
-                  '${mode.shortLabel} ${mode.unit}',
-                  style: FluxTheme.monoNumeric.copyWith(
-                    fontSize: 11,
-                    color: accent,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Primary tabular numeric reading
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: <Widget>[
-                    Text(
-                      frame.filteredValue.toStringAsFixed(1),
-                      style: FluxTheme.monoNumeric.copyWith(
-                        fontSize: 22,
-                        color: FluxTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '+${frame.anomalyDelta.toStringAsFixed(1)}',
-                      style: FluxTheme.monoNumeric.copyWith(
-                        fontSize: 12,
-                        color: isAlert ? FluxTheme.anomalyAmber : FluxTheme.nominalGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Demo Mode toggle chip
-              InkWell(
-                onTap: onToggleDemo,
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: state.demoMode
-                        ? FluxTheme.cyanAccent.withValues(alpha: 0.18)
-                        : FluxTheme.surface,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: state.demoMode
-                          ? FluxTheme.cyanAccent
-                          : FluxTheme.border,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 10, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                // Primary tabular measurement + unboxed unit & delta (overflow-proof)
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: <Widget>[
+                        Text(
+                          frame.filteredValue.toStringAsFixed(1),
+                          style: FluxTheme.monoNumeric.copyWith(
+                            fontSize: 26,
+                            height: 1.05,
+                            letterSpacing: -0.6,
+                            color: FluxTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${mode.shortLabel} ${mode.unit}',
+                          style: FluxTheme.monoNumeric.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: accent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${isAlert ? '▲ ' : ''}+${frame.anomalyDelta.toStringAsFixed(1)}',
+                          style: FluxTheme.monoNumeric.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isAlert
+                                ? FluxTheme.anomalyAmber
+                                : FluxTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+
+                // Tactile Live/Demo toggle (44px hitbox)
+                _TopBarAction(
+                  onTap: onToggleDemo,
+                  active: state.demoMode,
+                  accent: FluxTheme.cyanAccent,
                   child: Text(
                     state.demoMode ? 'DEMO ON' : 'LIVE',
                     style: FluxTheme.monoNumeric.copyWith(
-                      fontSize: 10,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                       color: state.demoMode
                           ? FluxTheme.cyanAccent
-                          : FluxTheme.textMuted,
+                          : FluxTheme.textSecondary,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              // Vault shortcut button
-              InkWell(
-                onTap: onOpenVault,
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: FluxTheme.surface,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: FluxTheme.border),
-                  ),
+                const SizedBox(width: 4),
+                // Vault navigation trigger (44px hitbox)
+                _TopBarAction(
+                  onTap: onOpenVault,
+                  active: false,
+                  accent: FluxTheme.textPrimary,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Icon(Icons.folder_outlined, size: 13, color: FluxTheme.textPrimary),
-                      SizedBox(width: 4),
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 15,
+                        color: FluxTheme.textPrimary,
+                      ),
+                      SizedBox(width: 5),
                       Text(
                         'Vault',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: FluxTheme.textPrimary,
                         ),
@@ -140,76 +132,110 @@ class HudTelemetryBar extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: <Widget>[
-              Text(
-                'FLOOR ${frame.baselineValue.toStringAsFixed(1)} ${mode.unit}',
-                style: FluxTheme.monoNumeric.copyWith(
-                  fontSize: 10,
-                  color: FluxTheme.textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (mode == ScanMode.rf) ...<Widget>[
-                const SizedBox(width: 10),
-                Text(
-                  'BLE ${state.bleDeviceCount}',
-                  style: FluxTheme.monoNumeric.copyWith(
-                    fontSize: 10,
-                    color: FluxTheme.cyanAccent,
-                  ),
-                ),
               ],
-              const Spacer(),
-              if (state.activeBaseline != null) ...<Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: FluxTheme.anomalyAmber.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(
-                      color: FluxTheme.anomalyAmber.withValues(alpha: 0.65),
+            ),
+          ),
+
+          // Hairline separator
+          const Divider(height: 1, thickness: 0.6, color: FluxTheme.borderSubtle),
+
+          // Quiet unboxed instrument metadata strip (zero pill clutter)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    _buildMetadataLine(mode, frame.baselineValue),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: FluxTheme.monoNumeric.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      color: FluxTheme.textMuted,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        'DIFF: ${state.activeBaseline!.roomName}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: FluxTheme.anomalyAmber,
+                ),
+                if (state.activeBaseline != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onClearBaseline,
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          'Diff · ${state.activeBaseline!.roomName}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: FluxTheme.anomalyAmber,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: onClearBaseline,
-                        child: const Icon(
+                        const SizedBox(width: 4),
+                        const Icon(
                           Icons.close,
-                          size: 12,
+                          size: 13,
                           color: FluxTheme.anomalyAmber,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                ],
               ],
-              Text(
-                '${state.fps} FPS',
-                style: FluxTheme.monoNumeric.copyWith(
-                  fontSize: 10,
-                  color: FluxTheme.nominalGreen,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  String _buildMetadataLine(ScanMode mode, double baselineValue) {
+    final parts = <String>[
+      'Floor ${baselineValue.toStringAsFixed(1)} ${mode.unit}',
+      if (mode == ScanMode.rf) 'BLE ${state.bleDeviceCount}',
+      '${state.fps} fps',
+    ];
+    return parts.join('  ·  ');
+  }
+}
+
+class _TopBarAction extends StatelessWidget {
+  const _TopBarAction({
+    required this.onTap,
+    required this.active,
+    required this.accent,
+    required this.child,
+  });
+
+  final VoidCallback onTap;
+  final bool active;
+  final Color accent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(FluxTheme.radiusControl),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 40, minWidth: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active
+                ? accent.withValues(alpha: 0.14)
+                : FluxTheme.surfaceElevated.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(FluxTheme.radiusControl),
+            border: Border.all(
+              color: active ? accent.withValues(alpha: 0.55) : FluxTheme.border,
+              width: 0.8,
+            ),
+          ),
+          child: child,
+        ),
       ),
     );
   }

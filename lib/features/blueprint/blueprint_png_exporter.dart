@@ -120,10 +120,10 @@ class BlueprintPngExporter {
   void _drawHeader(Canvas canvas, ScanSession session) {
     final titlePainter = TextPainter(
       text: TextSpan(
-        text: 'FLUXVISION // 2D SPATIAL BLUEPRINT',
+        text: 'FLUXVISION  ·  2D SPATIAL BLUEPRINT',
         style: TextStyle(
           fontFamily: 'monospace',
-          fontSize: 20,
+          fontSize: 19,
           fontWeight: FontWeight.w700,
           color: session.mode.accentColor,
         ),
@@ -135,16 +135,16 @@ class BlueprintPngExporter {
     final subPainter = TextPainter(
       text: TextSpan(
         text:
-            '${session.title}  |  MODE: ${session.mode.label.toUpperCase()}  |  PEAK: ${session.peakValue.toStringAsFixed(1)} ${session.mode.unit}',
+            '${session.title}  ·  ${session.mode.label}  ·  Peak ${session.peakValue.toStringAsFixed(1)} ${session.mode.unit}',
         style: const TextStyle(
           fontFamily: 'monospace',
           fontSize: 13,
-          color: Color(0xFF94A3B8),
+          color: Color(0xFFA0AAB8),
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    subPainter.paint(canvas, const Offset(48, 60));
+    subPainter.paint(canvas, const Offset(48, 58));
   }
 
   void _drawHeatmapPixels({

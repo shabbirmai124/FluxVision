@@ -9,8 +9,8 @@ import '../../engine/scan_mode.dart';
 import '../scanner/scanner_controller.dart';
 import 'vault_controller.dart';
 
-/// Offline vault screen displaying saved Room Baselines (for Privacy Diff Mode)
-/// and persisted 2D Scan Blueprints.
+/// Offline vault screen using clean hairline list rows, quiet unboxed metadata,
+/// and zero nested card clutter for saved Room Baselines and Scan Blueprints.
 class VaultScreen extends ConsumerWidget {
   const VaultScreen({super.key});
 
@@ -27,9 +27,6 @@ class VaultScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('Offline Vault'),
           bottom: const TabBar(
-            indicatorColor: FluxTheme.cyanAccent,
-            labelColor: FluxTheme.textPrimary,
-            unselectedLabelColor: FluxTheme.textMuted,
             tabs: <Tab>[
               Tab(text: 'Room Baselines'),
               Tab(text: 'Scan Blueprints'),
@@ -37,23 +34,28 @@ class VaultScreen extends ConsumerWidget {
           ),
         ),
         body: vaultAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           error: (Object error, StackTrace _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Icon(Icons.error_outline, size: 36, color: FluxTheme.criticalRed),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Failed to read local vault: $error',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: FluxTheme.textMuted),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: FluxTheme.criticalRed,
                   ),
                   const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () => unawaited(ref.read(vaultControllerProvider.notifier).refresh()),
+                  Text(
+                    'Unable to read local vault: $error',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: FluxTheme.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () =>
+                        unawaited(ref.read(vaultControllerProvider.notifier).refresh()),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -111,87 +113,76 @@ class _BaselinesTab extends StatelessWidget {
       return const _EmptyVaultMessage(
         icon: Icons.shield_outlined,
         title: 'No Room Baselines Saved',
-        subtitle: 'Calibrate a clean room on the scanner and tap Baseline to enable Privacy Diff sweeps.',
+        subtitle:
+            'Calibrate a clean room on the scanner and tap Baseline to enable Privacy Diff sweeps.',
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: baselines.length,
-      separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 10),
+      separatorBuilder: (BuildContext context, int index) => const Divider(
+        height: 1,
+        thickness: 0.6,
+        indent: 68,
+        color: FluxTheme.borderSubtle,
+      ),
       itemBuilder: (BuildContext context, int index) {
         final item = baselines[index];
         final isActive = item.id == activeBaselineId;
 
-        return Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => onActivate(item),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: <Widget>[
-                  _ModeBadge(mode: item.mode),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Flexible(
-                              child: Text(
-                                item.roomName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: FluxTheme.textPrimary,
-                                ),
-                              ),
-                            ),
-                            if (isActive) ...<Widget>[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: FluxTheme.cyanAccent.withValues(alpha: 0.18),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: FluxTheme.cyanAccent.withValues(alpha: 0.7),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'ACTIVE DIFF',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: FluxTheme.cyanAccent,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+        return InkWell(
+          onTap: () => onActivate(item),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: <Widget>[
+                _ModeGlyph(mode: item.mode),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        item.roomName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: FluxTheme.textPrimary,
+                          letterSpacing: -0.1,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Ambient Floor: ${item.ambientValue.toStringAsFixed(1)} ${item.mode.unit}',
-                          style: FluxTheme.monoNumeric.copyWith(
-                            fontSize: 12,
-                            color: FluxTheme.textMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isActive
+                            ? 'Floor ${item.ambientValue.toStringAsFixed(1)} ${item.mode.unit}  ·  Active Diff'
+                            : 'Floor ${item.ambientValue.toStringAsFixed(1)} ${item.mode.unit}  ·  ${item.mode.label}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FluxTheme.monoNumeric.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: isActive
+                              ? FluxTheme.anomalyAmber
+                              : FluxTheme.textMuted,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: 'Delete baseline',
-                    onPressed: () => onDelete(item.id),
-                    icon: const Icon(Icons.delete_outline, color: FluxTheme.textMuted),
+                ),
+                IconButton(
+                  tooltip: 'Delete baseline',
+                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                  onPressed: () => onDelete(item.id),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: FluxTheme.textMuted,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -215,63 +206,80 @@ class _SessionsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (sessions.isEmpty) {
       return const _EmptyVaultMessage(
-        icon: Icons.grid_on_outlined,
+        icon: Icons.grid_view_outlined,
         title: 'No 2D Blueprints Yet',
-        subtitle: 'Sweep a room and tap Blueprint on the scanner dock to archive a 32x32 top-down heatmap.',
+        subtitle:
+            'Sweep a space and tap Blueprint on the scanner console to archive a 32×32 top-down heatmap.',
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: sessions.length,
-      separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 10),
+      separatorBuilder: (BuildContext context, int index) => const Divider(
+        height: 1,
+        thickness: 0.6,
+        indent: 68,
+        color: FluxTheme.borderSubtle,
+      ),
       itemBuilder: (BuildContext context, int index) {
         final session = sessions[index];
 
-        return Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => onOpenBlueprint(session),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: <Widget>[
-                  _ModeBadge(mode: session.mode),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          session.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: FluxTheme.textPrimary,
-                          ),
+        return InkWell(
+          onTap: () => onOpenBlueprint(session),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: <Widget>[
+                _ModeGlyph(mode: session.mode),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        session.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: FluxTheme.textPrimary,
+                          letterSpacing: -0.1,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Peak ${session.peakValue.toStringAsFixed(1)} ${session.mode.unit}  •  '
-                          '+${session.peakDelta.toStringAsFixed(1)}  •  '
-                          '${session.anchorCount} anchors',
-                          style: FluxTheme.monoNumeric.copyWith(
-                            fontSize: 11,
-                            color: FluxTheme.textMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Peak ${session.peakValue.toStringAsFixed(1)} ${session.mode.unit}  ·  '
+                        '+${session.peakDelta.toStringAsFixed(1)}  ·  '
+                        '${session.anchorCount} anchors',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FluxTheme.monoNumeric.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: FluxTheme.textMuted,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: 'Delete blueprint',
-                    onPressed: () => onDelete(session.id),
-                    icon: const Icon(Icons.delete_outline, color: FluxTheme.textMuted),
+                ),
+                IconButton(
+                  tooltip: 'Delete blueprint',
+                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                  onPressed: () => onDelete(session.id),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: FluxTheme.textMuted,
                   ),
-                ],
-              ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: FluxTheme.textMuted,
+                ),
+              ],
             ),
           ),
         );
@@ -280,26 +288,27 @@ class _SessionsTab extends StatelessWidget {
   }
 }
 
-class _ModeBadge extends StatelessWidget {
-  const _ModeBadge({required this.mode});
+class _ModeGlyph extends StatelessWidget {
+  const _ModeGlyph({required this.mode});
 
   final ScanMode mode;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 38,
+      height: 38,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: mode.accentColor.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: mode.accentColor.withValues(alpha: 0.55)),
+        color: FluxTheme.surface,
+        borderRadius: BorderRadius.circular(FluxTheme.radiusControl),
+        border: Border.all(color: FluxTheme.border, width: 0.8),
       ),
       child: Text(
         mode.shortLabel,
         style: FluxTheme.monoNumeric.copyWith(
-          fontSize: 12,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
           color: mode.accentColor,
         ),
       ),
@@ -322,16 +331,16 @@ class _EmptyVaultMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 42, color: FluxTheme.textMuted),
-            const SizedBox(height: 12),
+            Icon(icon, size: 36, color: FluxTheme.textMuted),
+            const SizedBox(height: 14),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: FluxTheme.textPrimary,
               ),
@@ -340,7 +349,11 @@ class _EmptyVaultMessage extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: FluxTheme.textMuted),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: FluxTheme.textMuted,
+              ),
             ),
           ],
         ),

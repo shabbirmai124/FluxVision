@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 
-/// 1-second animated calibration progress overlay & hardware fallback banner.
+/// Precision calibration progress bar and actionable hardware fallback banner.
 class CalibrationOverlay extends StatelessWidget {
   const CalibrationOverlay({
     super.key,
@@ -34,20 +34,31 @@ class CalibrationOverlay extends StatelessWidget {
         if (sensorAlert != null && !demoMode)
           Container(
             margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
             decoration: BoxDecoration(
               color: FluxTheme.surfaceGlass,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: FluxTheme.anomalyAmber.withValues(alpha: 0.7)),
+              borderRadius: BorderRadius.circular(FluxTheme.radiusControl),
+              border: Border.all(
+                color: FluxTheme.anomalyAmber.withValues(alpha: 0.55),
+                width: 0.8,
+              ),
             ),
             child: Row(
               children: <Widget>[
-                const Icon(Icons.sensors_off, size: 18, color: FluxTheme.anomalyAmber),
-                const SizedBox(width: 8),
+                const Icon(
+                  Icons.sensors_off_outlined,
+                  size: 18,
+                  color: FluxTheme.anomalyAmber,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     sensorAlert!,
-                    style: const TextStyle(fontSize: 12, color: FluxTheme.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: FluxTheme.textPrimary,
+                    ),
                   ),
                 ),
                 if (permissionPermanentlyDenied && onOpenSettings != null)
@@ -58,51 +69,78 @@ class CalibrationOverlay extends StatelessWidget {
                 if (onEnableDemoMode != null)
                   TextButton(
                     onPressed: onEnableDemoMode,
+                    style: TextButton.styleFrom(
+                      foregroundColor: FluxTheme.cyanAccent,
+                    ),
                     child: const Text('Demo'),
                   ),
                 if (onDismissAlert != null)
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     onPressed: onDismissAlert,
-                    icon: const Icon(Icons.close, size: 16, color: FluxTheme.textMuted),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: FluxTheme.textMuted,
+                    ),
                   ),
               ],
             ),
           ),
         if (isCalibrating)
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: FluxTheme.surfaceGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: accentColor.withValues(alpha: 0.8)),
+              borderRadius: BorderRadius.circular(FluxTheme.radiusControl),
+              border: Border.all(
+                color: accentColor.withValues(alpha: 0.6),
+                width: 0.8,
+              ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(
-                    value: progress > 0.02 ? progress : null,
-                    strokeWidth: 3,
-                    color: accentColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                Row(
                   children: <Widget>[
-                    const Text(
-                      'Calibrating Ambient Baseline...',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    const Expanded(
+                      child: Text(
+                        'Calibrating Ambient Baseline',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: FluxTheme.textPrimary,
+                        ),
+                      ),
                     ),
                     Text(
-                      'Hold steady for 1 second (${(progress * 100).round()}%)',
-                      style: const TextStyle(fontSize: 11, color: FluxTheme.textMuted),
+                      '${(progress * 100).round()}%',
+                      style: FluxTheme.monoNumeric.copyWith(
+                        fontSize: 12,
+                        color: accentColor,
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Hold device steady for trimmed-mean floor sampling',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: FluxTheme.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: progress > 0.02 ? progress : null,
+                    minHeight: 3,
+                    backgroundColor: FluxTheme.border,
+                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+                  ),
                 ),
               ],
             ),
